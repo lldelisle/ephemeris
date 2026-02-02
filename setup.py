@@ -86,7 +86,7 @@ setup(
     install_requires=requirements,
     license="AFL",
     zip_safe=False,
-    python_requires=">=3.10",
+    python_requires=">=3.9",
     keywords="galaxy",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
