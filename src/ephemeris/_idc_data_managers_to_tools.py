@@ -9,6 +9,7 @@ a tools.yml file from it for use with shed_tools.
 import argparse
 
 import yaml
+from bioblend import toolshed
 
 from ._config_models import (
     read_data_managers,
@@ -27,17 +28,27 @@ from .ephemeris_log import (
 def build_shed_install_conf(path: str) -> dict:
     data_managers = read_data_managers(path)
     tools = []
+    ts = toolshed.ToolShedInstance("toolshed.g2.bx.psu.edu")
     for data_manager in data_managers.root.values():
         tool_id = data_manager.tool_id
         tool_id_parts = tool_id.split("/")
+        assert tool_id_parts[0] == "toolshed.g2.bx.psu.edu"
         repo_owner = tool_id_parts[2]
         repo_name = tool_id_parts[3]
-        entry = {
+        entry: dict[str, str | list[str] | None] = {
             "name": repo_name,
             "owner": repo_owner,
             "tool_panel_section_label": None,
             "tool_shed_url": "toolshed.g2.bx.psu.edu",
         }
+        # Find the good changeset revision
+        changeset_revisions = ts.repositories.get_ordered_installable_revisions(repo_name, repo_owner)
+        for changeset_revision in changeset_revisions:
+            infos = ts.repositories.get_repository_revision_install_info(repo_name, repo_owner, changeset_revision)
+            for vt in infos[1]["valid_tools"]:
+                if vt["guid"] == tool_id:
+                    entry["revisions"] = [changeset_revision]
+                    break
         tools.append(entry)
     tools_yaml = {"tools": tools}
     return tools_yaml
